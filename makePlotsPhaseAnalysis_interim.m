@@ -155,19 +155,19 @@ for i = 1:size(ageBins,1)
     end
     
     
-%     % save & close
+    % save & close
 %     if saveFlag
-%         saveFigAsPDF( [char(figNameStr{i}) '_allCellsPooled'], [fileparts(optionalPath) filesep] );
+%         savefig( [char(figNameStr{i}) + '_allCellsPooled'], [fileparts(optionalPath) filesep] );
 %         close(gcf);
 %     end
     
     if prms.plotAllCells
         
-        % plot all cells in dataset
         offSet   = [20 20];
         plotSep  = [20 20];
         plotSize = [200 100];
         
+        % plot all cells in dataset
         hScroll = scanpix.plot.createScrollPlot( [0.1*screenSz(3) 0.1*screenSz(4) 3*plotSize(1)+8*plotSep(1) 0.8*screenSz(4) ] );
         
         mapsAll      = { vertcat(Res.mapsShift(ageInd,1)), vertcat(Res.mapsShift(ageInd,2)) };
@@ -180,7 +180,30 @@ for i = 1:size(ageBins,1)
                 
                 for k = 1:2 % directions %
                     
-                    map2plot = mapsAll{k}{m}(j,:);
+                    map2plot = mapsAll{k}{m}(j,:); % spike rate vs position data
+
+                    % find local minima and their prominence
+                    [minInd, minProm] = islocalmin(map2plot);
+
+                    % find local maxima and their prominence
+                    [maxInd, maxProm] = islocalmax(map2plot);
+                    
+                    % remove maxima below threshold
+                    for i = 1:length(maxProm)
+                        if maxProm(i) < prms.maxPromThreshold
+                            maxProm(i) = 0;
+                            maxInd(i) = 0;
+                        end
+                        if map2plot(i) < max(map2plot) * prms.maxRateThreshold
+                            maxProm(i) = 0;
+                            maxInd(i) = 0;
+                        end
+                    end
+
+                    % plot to display included minima                    
+%                     x = 1:100;
+%                     plot(x, map2plot, x(minInd), map2plot(minInd), 'r*');
+
                     ind = allPhaseData{k}{m}(:,3) == j;
                     if sum(ind) == 0; continue; end
                     
@@ -189,75 +212,61 @@ for i = 1:size(ageBins,1)
                     temp_X = allPhaseData{k}{m}(ind,1); % pos for cell
                     
                     hAx = scanpix.plot.addAxisScrollPlot( hScroll, [offSet plotSize], plotSep );
-                    area(hAx,map2plot); % plot map
+                    area(hAx,map2plot); % plot map of firing rate vs position
                     hold(hAx,'on');
-                    % mark field
-                    plot(hAx,[min(temp_X./Res.Properties.UserData.binSize_linMaps) min(temp_X./Res.Properties.UserData.binSize_linMaps);max(temp_X./Res.Properties.UserData.binSize_linMaps) max(temp_X./Res.Properties.UserData.binSize_linMaps)]',...
-                        [0 ceil(nanmax(map2plot));0 ceil(nanmax(map2plot))]','k--');
+
+%                     % mark field
+%                     plot(hAx,[min(temp_X./Res.Properties.UserData.binSize_linMaps) min(temp_X./Res.Properties.UserData.binSize_linMaps);max(temp_X./Res.Properties.UserData.binSize_linMaps) max(temp_X./Res.Properties.UserData.binSize_linMaps)]',...
+%                         [0 ceil(nanmax(map2plot));0 ceil(nanmax(map2plot))]','k--');
+
+                    % mark included maxima
+                    maxs = [];
+                    for i = 1:length(maxInd)
+                        if maxInd(i) == 1
+                            maxs = [maxs i];
+                        end
+                    end
+%                     disp(mins);
+
+                    plot(hAx, maxs, map2plot(maxs), 'r*');
+
                     hold(hAx,'off');
                     set(hAx,'xtick',[],'ylim',[0 ceil(nanmax(map2plot))]);
                     offSet(1) = offSet(1) + plotSize(1) + plotSep(1);
                     
                     hAx = scanpix.plot.addAxisScrollPlot( hScroll, [offSet plotSize(1)/2 plotSize(2)], plotSep );
                     
-                    plot(hAx,temp_X./Res.Properties.UserData.binSize_linMaps, temp_P./(4*pi), 'k.'); % plot spikepos v phase in field
+                    % plot spikepos v phase in field
+                    plot(hAx,temp_X./Res.Properties.UserData.binSize_linMaps, temp_P./(4*pi), 'k.'); 
                     hold(hAx,'on');
-                    plot(hAx,map2plot./nanmax(map2plot(:)),'b-','linewidth',2); % plot field
-                    
-                    % ########### Edited henceforth to account for multiple
-                    % possible subfields ###########
-                    fields = size(allCircReg{m});
-                    
-                    % rearrage regressions so each cell has subfields along
-                    % the first dimension and remove zero values
-                    fieldsFirst = permute(allCircReg{m},[3 4 1 2]);
-                    cellFields = mat2cell(fieldsFirst, [fields(3)], [fields(4)], [ones(fields(1),1)], [ones(fields(2),1)]);
-                    cellFields = cellfun(@(c) c(c~=0), cellFields, 'UniformOutput', false);
-                    for x = 1:fields(1)
-                        for y = 1:fields(2)
-                            cellFields{:,:,x,y} = transpose(reshape(cellFields{:,:,x,y}, [],2));
-                        end
-                    end
-                    % Regression data are now structured: 4-D cell array with:
-                    % dim1&2 = regression values for each subfield, values
-                    % for an individual subfield in dim1
-                    %dim3 = cell (j)
-                    %dim4 = direction (k)
 
-                    for n = 1:size(cellFields{:,:,j,k},2)
-                        % calculate circular regression line vlues
-                        yVals{n,j,k} = repmat([0 1]' .* allCircReg{m}(j,k,n,1) + mod(allCircReg{m}(j,k,n,2),2*pi),1,3) + [0 2*pi 4*pi];
+                    % plot field
+                    plot(hAx,map2plot./nanmax(map2plot(:)),'b-','linewidth',2); 
+                    
+                    % plot circular regression line - solid if significant, dashed if not significant
+                    yVals = repmat([0 1]' .* allCircReg{m}(j,k,1) + mod(allCircReg{m}(j,k,2),2*pi),1,3) + [0 2*pi 4*pi]; 
                     %                     yVals = repmat([-1 1]' .* Res.circReg{1}(j,k,1) + mod(Res.circReg{1}(j,k,2),2*pi),1,3) + [0 2*pi 4*pi]; % plot circular regression line
-                    
-
-                        %plot regression lines depending on significance
-                        % NEED TO ADJUST X VALUES TO LOCATE TO APPROPRIATE
-                        % SUBFIELD
-                        if p(j,k,n) >= 0.05
-                     
-                            plot(hAx,[min(temp_X./Res.Properties.UserData.binSize_linMaps) max(temp_X./Res.Properties.UserData.binSize_linMaps)],yVals{n,j,k}/(4*pi),'r--');
-                            subtitle('p = '+string(p(j,k)))
-                        else
-                            plot(hAx,[min(temp_X./Res.Properties.UserData.binSize_linMaps) max(temp_X./Res.Properties.UserData.binSize_linMaps)],yVals{n,j,k}/(4*pi),'r-');
-                            subtitle('p = '+string(p(j,k)))
-                        end
+                   
+                    if p(j,k) >= 0.05
+                        plot(hAx,[min(temp_X./Res.Properties.UserData.binSize_linMaps) max(temp_X./Res.Properties.UserData.binSize_linMaps)],yVals/(4*pi),'r--');
+                        subtitle('p = '+string(p(j,k)))
+                    else
+                        plot(hAx,[min(temp_X./Res.Properties.UserData.binSize_linMaps) max(temp_X./Res.Properties.UserData.binSize_linMaps)],yVals/(4*pi),'r-');
+                        subtitle('p = '+string(p(j,k)))
                     end
+                    
                     hold(hAx,'off');
-%                     set(hAx,'xlim',[0.95*min(temp_X./Res.Properties.UserData.binSize_linMaps) 1.05*max(temp_X./Res.Properties.UserData.binSize_linMaps)],'ytick',[],'xtick',[],'ylim',[0 1]);
-                    offSet(1) = offSet(1) + plotSize(1)/2 + 3*plotSep(1);
 
-%                     clear("yVals");
+                    %set axis limits to zoom in on place field
+                    set(hAx,'xlim',[0.95*min(temp_X./Res.Properties.UserData.binSize_linMaps) 1.05*max(temp_X./Res.Properties.UserData.binSize_linMaps)],'ytick',[],'xtick',[],'ylim',[0 1]);
+                    offSet(1) = offSet(1) + plotSize(1)/2 + 3*plotSep(1);
                 end
                 offSet(1) = 20;
                 offSet(2) = offSet(2) + plotSize(2) + plotSep(2);
                 
             end
         end
-
-
-        end
-
-%         % save & close
+        % save & close
 %         if saveFlag
 %             saveFigAsPDF( [char(figNameStr{i}) '_singleCells'],[fileparts(optionalPath) filesep]);
 %             close(gcf);
@@ -299,4 +308,5 @@ for i = 1:size(ageBins,1)
     %     end
 end
 
+end
 

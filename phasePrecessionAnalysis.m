@@ -2,7 +2,7 @@
 
 
 %% Set ephys parameters
-prms.pathMasterSheet  = 'D:\data\replayMasterTrialList_reduced.xlsx';
+prms.pathMasterSheet  = 'C:\Users\Jake\Documents\data\replayMasterTrialList_reduced.xlsx';
 prms.spkWidthThrForCS = 0.3;  % 0.3, 25 and 5 are all good values, from a histogram of the whole dataset, 2018-04-10. Best prediction is spkWidth vs ACMom, after this, rate only removes 2-3 extra cells.
 prms.ACMomThrForCS    = 25;   % 25
 prms.rateThrForCS     = 5;    % 5
@@ -12,11 +12,12 @@ prms.thetaBand        = [5 11]; % This sets the limits of the band in which we s
 
 % plotting
 prms.ageBins                    = [16 18; 19 21; 22 25; 26 33; 40 40];    
-prms.makeSummaryPlots           = 1;
+prms.makeSummaryPlots           = 0;
 prms.makeSummaryPlotsPerDataSet = 1;
 prms.useSigOnly                 = 0;
 prms.pType                      = 'circ_reg'; % 'circ_reg', 'circ_corrc'
-prms.plotAllCells               = 1;
+prms.plotAllCells               = 0;
+prms.multipleFieldPlots         = 1;
 %params for density maps
 prms.sigma                      = [3 2];
 

@@ -349,6 +349,10 @@ for j = 1:length(spikeTimes) %  1:20 %
             Xall = cat(2, Xall,  cell2mat(X(i)));
             Pall = cat(2, Pall, cell2mat(P(i)));
         end
+        
+        %Grab subfield data for X and P
+        Xsub{j} = X;
+        Psub{j} = P;
 
         % check theta mod
         validSpikesInd2   = ismember( spkToDwellSampInd, find(speedInd & runDirInd) ); % 'valid' spikes for whole track to estimate theta mod
@@ -384,6 +388,8 @@ Res.pTheta       = pTheta;
 Res.densMapRaw   = densMapOut;
 Res.mapsShift    = mapsOut;
 Res.rhoCircReg   = rho_CircReg;
+Res.Xsub         = {Xsub};
+Res.Psub         = {Psub};
 
 % make table
 Res                     = struct2table(Res,'AsArray',1);
