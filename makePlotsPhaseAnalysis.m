@@ -188,20 +188,25 @@ for i = 1:size(ageBins,1)
                     temp_P = repmat(temp_P,1,2) + [0 2*pi];
                     temp_X = allPhaseData{k}{m}(ind,1); % pos for cell
                     
+                    % PLOT LEFT HAND PLOT (WHOLE FIELD)
                     hAx = scanpix.plot.addAxisScrollPlot( hScroll, [offSet plotSize], plotSep );
                     area(hAx,map2plot); % plot map
                     hold(hAx,'on');
-                    % mark field
+
+                    % mark field with dashed vertical lines
                     plot(hAx,[min(temp_X./Res.Properties.UserData.binSize_linMaps) min(temp_X./Res.Properties.UserData.binSize_linMaps);max(temp_X./Res.Properties.UserData.binSize_linMaps) max(temp_X./Res.Properties.UserData.binSize_linMaps)]',...
                         [0 ceil(nanmax(map2plot));0 ceil(nanmax(map2plot))]','k--');
                     hold(hAx,'off');
                     set(hAx,'xtick',[],'ylim',[0 ceil(nanmax(map2plot))]);
                     offSet(1) = offSet(1) + plotSize(1) + plotSep(1);
                     
+                    %PLOT RIGHT HAND SIDE PLOT
                     hAx = scanpix.plot.addAxisScrollPlot( hScroll, [offSet plotSize(1)/2 plotSize(2)], plotSep );
                     
-                    plot(hAx,temp_X./Res.Properties.UserData.binSize_linMaps, temp_P./(4*pi), 'k.'); % plot spikepos v phase in field
+                    % plot(hAx,temp_X./Res.Properties.UserData.binSize_linMaps, temp_P./(4*pi), 'k.'); % plot spikepos v phase in field 
                     hold(hAx,'on');
+
+                    % plot rate vs position RHS
                     plot(hAx,map2plot./nanmax(map2plot(:)),'b-','linewidth',2); % plot field
                     
                     % ########### Edited henceforth to account for multiple
@@ -233,6 +238,9 @@ for i = 1:size(ageBins,1)
                         %plot regression lines depending on significance
                         % NEED TO ADJUST X VALUES TO LOCATE TO APPROPRIATE
                         % SUBFIELD
+
+                        plot(hAx,Res.Xsub{1}{j}{n}./Res.Properties.UserData.binSize_linMaps, Res.Psub{1}{j}{n}./(4*pi), 'k.'); % plot spikepos v phase in field
+
                         if p(j,k,n) >= 0.05
                      
                             plot(hAx,[min(temp_X./Res.Properties.UserData.binSize_linMaps) max(temp_X./Res.Properties.UserData.binSize_linMaps)],yVals{n,j,k}/(4*pi),'r--');
