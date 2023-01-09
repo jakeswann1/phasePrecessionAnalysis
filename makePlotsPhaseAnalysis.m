@@ -176,10 +176,10 @@ for i = 1:size(ageBins,1)
         
         for m = 1:length(ageInd)
             cellIt = cellIDs(cellIDs(:,2)==m,1);
-            for j = cellIt'
+            for j = cellIt' % cellID
                 
                 for k = 1:2 % directions %
-                    
+
                     map2plot = mapsAll{k}{m}(j,:);
                     ind = allPhaseData{k}{m}(:,3) == j;
                     if sum(ind) == 0; continue; end
@@ -194,30 +194,22 @@ for i = 1:size(ageBins,1)
                     hold(hAx,'on');
 
                     % mark field with dashed vertical lines
-                    plot(hAx,[min(temp_X./Res.Properties.UserData.binSize_linMaps) min(temp_X./Res.Properties.UserData.binSize_linMaps);max(temp_X./Res.Properties.UserData.binSize_linMaps) max(temp_X./Res.Properties.UserData.binSize_linMaps)]',...
+                    plot(hAx,[min(Res.Xsub{1}{j}{1}./Res.Properties.UserData.binSize_linMaps) min(Res.Xsub{1}{j}{1}./Res.Properties.UserData.binSize_linMaps);max(Res.Xsub{1}{j}{1}./Res.Properties.UserData.binSize_linMaps) max(Res.Xsub{1}{j}{1}./Res.Properties.UserData.binSize_linMaps)]',...
                         [0 ceil(nanmax(map2plot));0 ceil(nanmax(map2plot))]','k--');
                     hold(hAx,'off');
                     set(hAx,'xtick',[],'ylim',[0 ceil(nanmax(map2plot))]);
                     offSet(1) = offSet(1) + plotSize(1) + plotSep(1);
-                    
-                    %PLOT RIGHT HAND SIDE PLOT
-                    hAx = scanpix.plot.addAxisScrollPlot( hScroll, [offSet plotSize(1)/2 plotSize(2)], plotSep );
-                    
-                    % plot(hAx,temp_X./Res.Properties.UserData.binSize_linMaps, temp_P./(4*pi), 'k.'); % plot spikepos v phase in field 
-                    hold(hAx,'on');
 
-                    % plot rate vs position RHS
-                    plot(hAx,map2plot./nanmax(map2plot(:)),'b-','linewidth',2); % plot field
-                    
                     % ########### Edited henceforth to account for multiple
                     % possible subfields ###########
-                    fields = size(allCircReg{m});
-                    
+
                     % rearrage regressions so each cell has subfields along
                     % the first dimension and remove zero values
+                    fields = size(allCircReg{m});
                     fieldsFirst = permute(allCircReg{m},[3 4 1 2]);
                     cellFields = mat2cell(fieldsFirst, [fields(3)], [fields(4)], [ones(fields(1),1)], [ones(fields(2),1)]);
                     cellFields = cellfun(@(c) c(c~=0), cellFields, 'UniformOutput', false);
+
                     for x = 1:fields(1)
                         for y = 1:fields(2)
                             cellFields{:,:,x,y} = transpose(reshape(cellFields{:,:,x,y}, [],2));
@@ -229,35 +221,71 @@ for i = 1:size(ageBins,1)
                     %dim3 = cell (j)
                     %dim4 = direction (k)
 
-                    for n = 1:size(cellFields{:,:,j,k},2)
-                        % calculate circular regression line vlues
-                        yVals{n,j,k} = repmat([0 1]' .* allCircReg{m}(j,k,n,1) + mod(allCircReg{m}(j,k,n,2),2*pi),1,3) + [0 2*pi 4*pi];
-                    %                     yVals = repmat([-1 1]' .* Res.circReg{1}(j,k,1) + mod(Res.circReg{1}(j,k,2),2*pi),1,3) + [0 2*pi 4*pi]; % plot circular regression line
+                    %PLOT RIGHT HAND SIDE PLOT
+                    hAx = scanpix.plot.addAxisScrollPlot( hScroll, [offSet plotSize(1)/2 plotSize(2)], plotSep );
                     
+                    % plot(hAx,temp_X./Res.Properties.UserData.binSize_linMaps, temp_P./(4*pi), 'k.'); 
+                    % plot spikepos v phase in field 
+                    hold(hAx,'on');
 
-                        %plot regression lines depending on significance
-                        % NEED TO ADJUST X VALUES TO LOCATE TO APPROPRIATE
-                        % SUBFIELD
+                    % plot rate vs position RHS
+                    plot(hAx,map2plot./nanmax(map2plot(:)),'b-','linewidth',2); % plot field
 
-                        plot(hAx,Res.Xsub{1}{j}{n}./Res.Properties.UserData.binSize_linMaps, Res.Psub{1}{j}{n}./(4*pi), 'k.'); % plot spikepos v phase in field
+%                     try
+                        for n = 1:size(Res.Xsub{1}{j},2) % subfields
 
-                        if p(j,k,n) >= 0.05
-                     
-                            plot(hAx,[min(temp_X./Res.Properties.UserData.binSize_linMaps) max(temp_X./Res.Properties.UserData.binSize_linMaps)],yVals{n,j,k}/(4*pi),'r--');
-                            subtitle('p = '+string(p(j,k)))
-                        else
-                            plot(hAx,[min(temp_X./Res.Properties.UserData.binSize_linMaps) max(temp_X./Res.Properties.UserData.binSize_linMaps)],yVals{n,j,k}/(4*pi),'r-');
-                            subtitle('p = '+string(p(j,k)))
+                            % calculate circular regression line values
+                            % NB currently restricted to negative
+                            % regression values only
+                            yVals{n,j,k} = repmat([0 1]' .* allCircReg{m}(j,k,n,1) + mod(allCircReg{m}(j,k,n,2),2*pi),1,3) + [0 2*pi 4*pi];
+                            %yVals = repmat([-1 1]' .* Res.circReg{1}(j,k,1) + mod(Res.circReg{1}(j,k,2),2*pi),1,3) + [0 2*pi 4*pi]; % plot circular regression line
+                        
+    
+                            %plot spikes vs phase for the current subfield
+                            plot(hAx,Res.Xsub{1}{j}{n}./Res.Properties.UserData.binSize_linMaps, Res.Psub{1}{j}{n}.*(2/(4*pi)), 'k.');
+    
+                            %set x boundaries per subfield
+                            rangeTop = max(Res.Xsub{1}{j}{n})./Res.Properties.UserData.binSize_linMaps;
+                            try
+                                rangeBot = min(setdiff(Res.Xsub{1}{j}{n}, Res.Xsub{1}{j}{n-1}))./Res.Properties.UserData.binSize_linMaps;
+                            catch
+                                rangeBot = min(Res.Xsub{1}{j}{n})./Res.Properties.UserData.binSize_linMaps;
+                            end
+                            
+                            %plot dashed lines for P>0.05, unbroken line for
+                            %P<0.05
+                            if p(j,k,n) >= 0.05
+                                plot(hAx,[rangeBot rangeTop],yVals{n,j,k}/(2*pi),'r--');
+                                hold(hAx, 'on');
+    %                             subtitle('p = '+string(p(j,k)))
+
+                            else
+                                plot(hAx,[rangeBot rangeTop],yVals{n,j,k}/(2*pi),'g-');
+                                hold(hAx,'on');
+    %                             subtitle('p = '+string(p(j,k)))
+                            end
+                        
                         end
-                    end
-                    hold(hAx,'off');
-%                     set(hAx,'xlim',[0.95*min(temp_X./Res.Properties.UserData.binSize_linMaps) 1.05*max(temp_X./Res.Properties.UserData.binSize_linMaps)],'ytick',[],'xtick',[],'ylim',[0 1]);
+                    
+                    % set axes
+                    set(hAx,'xlim',[0.95*min(Res.Xsub{1}{j}{n}./Res.Properties.UserData.binSize_linMaps) 1.05*max(Res.Xsub{1}{j}{n}./Res.Properties.UserData.binSize_linMaps)],'ytick',[],'xtick',[],'ylim',[-0.05 1]);
                     offSet(1) = offSet(1) + plotSize(1)/2 + 3*plotSep(1);
 
-%                     clear("yVals");
+%                     catch
+% %                         PLOT LEFT HAND PLOT (WHOLE FIELD)
+% %                         map2plot = mapsAll{k}{m}(j,:);
+% %                         hAx = scanpix.plot.addAxisScrollPlot( hScroll, [offSet plotSize], plotSep );
+% %                         area(hAx,map2plot); % plot map
+% %                         hold(hAx,'on');
+% 
+%                         set(hAx,'xlim',[0 100],'ytick',[],'xtick',[],'ylim',[-0.2 1]);
+%                         offSet(1) = offSet(1) + plotSize(1)/2 + 3*plotSep(1);
+% 
+%                     end
                 end
                 offSet(1) = 20;
                 offSet(2) = offSet(2) + plotSize(2) + plotSep(2);
+                hold(hAx, 'off');
                 
             end
         end

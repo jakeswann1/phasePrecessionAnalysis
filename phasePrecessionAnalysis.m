@@ -22,7 +22,7 @@ prms.multipleFieldPlots         = 1;
 prms.sigma                      = [3 2];
 
 % params for thresholding peaks
-prms.minPromThreshold               = 0.5;
+prms.minPromThreshold           = 0.5;
 prms.maxPromThreshold           = 1;
 prms.maxRateThreshold           = 0.5;
 
